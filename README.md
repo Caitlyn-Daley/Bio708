@@ -1,3 +1,16 @@
+
+# Bio708
+Description for assignment three: January 25th 
+
+What I am trying to show: 
+I am trying to demonstrate if there is a relationship between the degree of perturbation, and the magnitude of variability across DGRP strains. Based on previous literature, it might be expected that alleles with moderate phenotypic effects will demonstrate more phenotypic variability between DGRP strains than alleles with weak or severe phenotypic effects. 
+
+I would also like to visualize the effect of the local environment (i.e block effects) vs. genetic effects. 
+
+Lastly, I would like to visualize if the rank order of alleles remains fixed as OREw<sd[1]<sd[E3]<sd[ETX4]) across strains. 
+To assess the phenotypes of each mutant/DGRP line combination, I will use the mean phenotype of all samples in each genotype. Most genotypes should have ~20 samples.   
+
+
 # Bio708
 Description for assignment two: January 18th 
 
