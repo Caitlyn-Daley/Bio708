@@ -1,1 +1,36 @@
-Population size: Hamilton (536,915) Prevalence Rate: 1%Positive Result: 100%Negative Result: 95% False Positive: 5%False Negative: 0% Answer (Bayes Theorem) Diseased individuals: 536,915 * 0.01 = 5369	Tests positive: 5369	Tests negative: 0Non-diseased individuals: 536,915 * 0.99 = 531, 546	Tests positive: 26,577	Tests negative: 504,969Total that test positive: 26,577 + 5369 = 31,946Test positive & have the disease: 5369/31,946 = 0.168 Therefore, the probability your friend has the disease is ~17%. If my friend told me they tested positive for the disease, I would tell them there is a higher probability they don’t actually have the disease and shouldn’t worry.  100% of the time for people with the virus. 5% of the time for people without the virus. A certain population has a prevalence of 1%. You pick a person from this population at random, and test them, and the test is positive. What is the probability that they have MMV? You learn that your friend has a positive rapid test for MMV. What do you tell them?
+Population size: Hamilton (536,915) 
+Prevalence Rate: 1%
+Positive Result: 100%
+Negative Result: 95% 
+False Positive: 5%
+False Negative: 0% 
+
+Answer (Bayes Theorem) 
+Diseased individuals: 536,915 * 0.01 = 5369
+	Tests positive: 5369
+	Tests negative: 0
+Non-diseased individuals: 536,915 * 0.99 = 531, 546
+	Tests positive: 26,577
+	Tests negative: 504,969
+
+Total that test positive: 26,577 + 5369 = 31,946
+Test positive & have the disease: 5369/31,946 = 0.168 
+
+Therefore, the probability your friend has the disease is ~17%. 
+
+If my friend told me they tested positive for the disease, I would tell them there is a higher probability they don’t actually have the disease and shouldn’t worry. 
+
+## JD: it's a weird choice to use such a specific population number (implies that it's relevant, but I guess you agree that it's not)
+## I don't agree with the conclusions about your friend. What's the difference between the two questions?
+
+
+ 
+
+
+
+
+
+
+100% of the time for people with the virus. 5% of the time for people without the virus. A certain population has a prevalence of 1%. You pick a person from this population at random, and test them, and the test is positive. What is the probability that they have MMV? You learn that your friend has a positive rapid test for MMV. What do you tell them?
+
+
