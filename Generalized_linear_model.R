@@ -25,9 +25,12 @@ loglm <- lm(log(Area_mmsq) ~ Mutant + DGRP + Mutant:DGRP,
                  wings)
 AIC(loglm)+sum(2*log(wings$Area_mmsq))
 
-reglm <- lm(Area_mmsq ~ Mutant + DGRP + Mutant:DGRP,
                  wings)
 AIC(reglm)
 AIC(generallm)
 
 ## https://stats.stackexchange.com/questions/61332/comparing-aic-of-a-model-and-its-log-transformed-version
+
+## BMB: would be interesting to do a more careful comparison of log-linear GLM (i.e. log transform wing area), Gamma GLM, regular GLM (maybe try Box-Cox transformation too?)
+
+## score: 2.25
