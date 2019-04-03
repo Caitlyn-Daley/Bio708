@@ -23,5 +23,5 @@ To understand which traits are under direct selection and which are under indire
 
 Selection gradient analysis uses a multiple regression with partial regression coefficients for each individual trait. To compare traits, we can standardize our selection gradient and differentials by the amount of variation in the trait (i.e., by the standard deviation). Here, we will use linear coefficients in a mixed linear multiple regression model to quantify directional selection on each trait. Quadratic approaches would allow us to test correlational selection among traits, but this is beyond the scope of this course.
 
-JD: Can you be more specific about what you are regressing against what? I guess the three traits are your predictors. Also, anything about temperature, experimental groups? What is your response?
+JD: Can you be more specific about what you are regressing against what? I guess the three traits are your predictors. Also, anything about temperature, experimental groups? What is your response variable for the SGA?
 
