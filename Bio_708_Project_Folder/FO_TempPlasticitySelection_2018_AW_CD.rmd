@@ -1,0 +1,91 @@
+---
+title: "Sade_March21_2018"
+author: "Ian Dworkin"
+date: "3/21/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Set up libraries we need
+
+```{r}
+library(car)
+library(ggplot2)
+library(lme4)
+library(effects)
+```
+
+Read in the data
+
+```{r}
+#pred_dat <- read.csv("../data/FO_TempPlasticitySelection_complete_April2018.csv", h = T)
+
+pred_dat <- read.csv("FO_TempPlasticitySelection_complete_April2018.csv", h = T)
+
+dim(pred_dat)
+
+str(pred_dat)
+summary(pred_dat)
+head(pred_dat)
+
+pred_dat$cage <- as.factor(pred_dat$cage)
+levels(pred_dat$cage)
+
+pred_dat$temperature_0 <- pred_dat$temperature - 18 
+pred_dat$temperature_f <- as.factor(pred_dat$temperature)
+```
+
+We can do some simple plots as a first check. I think I have sorted out some of the big issues, but others may not be.
+
+
+```{r}
+ggplot(pred_dat, aes(y = Length, x = trait:sex, color = treatment)) +
+    geom_boxplot()
+   
+
+```
+
+
+## Data munging. In addition to the individual with crazy values (~1000!) we have to add a variable where the first leg segment for each individual is femur, and the second is tibia.
+
+```{r}
+pred_dat$trait <- as.character(pred_dat$trait)
+
+dummy_trait <- character(nrow(pred_dat))
+
+for (i in 1:( nrow(pred_dat) -1) ) {
+    if(pred_dat$trait[i] == "L" & pred_dat$trait[i + 1] == "L") dummy_trait[i] = "femur" 
+    else if (pred_dat$trait[i] == "L" & pred_dat$trait[i + 1] != "L") dummy_trait[i] = "tibia" 
+    else dummy_trait[i] = pred_dat$trait[i]
+}
+
+tail(dummy_trait)
+dummy_trait[length(dummy_trait)] <- "T"
+tail(dummy_trait)
+
+pred_dat$new_trait <- as.factor(dummy_trait)
+levels(pred_dat$new_trait)
+
+levels(pred_dat$new_trait) <- c("femur", "thorax", "tibia", "wing") 
+levels(pred_dat$new_trait)
+```
+
+
+Get rid of the "null" in sex
+```{r}
+pred_dat <- pred_dat[pred_dat$sex != "N",]
+pred_dat <- droplevels(pred_dat)
+```
+
+
+Take a look again
+
+
+```{r}
+ggplot(pred_dat, aes(y = Length, x = new_trait:sex, color = treatment)) +
+    geom_boxplot()
+```
