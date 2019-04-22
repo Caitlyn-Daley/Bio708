@@ -1,0 +1,352 @@
+---
+title: "Bio- 708 Final_Project"
+author: "Caitlyn Daley & Audrey Wilson"
+date: "4/16/2019"
+output: html_document
+---
+Preamble: 
+The purpose of this experiment was to investigate how plasticity induced size variation affects susceptibility to predation, or predator induced natural selection. Since rearing flies at lower temperatures increases body size, flies were reared at 3 temperatures to create variation in body size; 18.5, 21 and 24 degrees. To account for possible temperature specific adaptive advantage during the experiment (of flies or predator), temperature manipulation was only used during the rearing process. Approximately ~200 adult flies from each rearing temperature were collected and then subdivided into treatment and control groups. Treatment populations were exposed to a predator (15 spiders) and monitored for survival for up to 6 days.The respective control population was reared at the same temperature and of similar age, but were not exposed to a predator. Measurements of the wing, tibia, femur and thorax (all of which are expected to be important traits in predation risk) were used to assess size.
+
+For our statistical approach, we will be emulating a similar analysis typically done for selection experiments. Typically, selection gradient analysis (multiple linear regression) is used to get selection estimates for each trait. The estimates that are output by the model are our selection gradient coeficients and act as estimates of how natural selection is acting on a trait. However, selection gradient analysis is typically done by using quadratic regressions that can help determine the type of selection(directional, stabilizing, or disruptive). For our analysis we will be only using linear regressions so we will only be able to identify if directional selection on a trait is occurring. 
+
+Standardizing the data of each trait will allow us to compare the estimates among traits and their effect on selection. In addition, te way selection gradient analysis is typically done in the field is converting the response variable (survivorship in our case) to relative fitness (fitness of individual/ mean(population fitness)), and plotting this against the standardized traits. In our analysis, we show both relative fitness and days survived. Although relative fitness is typically used in the field, most of our analyses used days survived as our response variable because this was more relavant to the questions we wanted to address.
+
+In our presentation, we thought we would do our analysis with our response variable (survival) as a binomial response (dead or alive). However, we decided it was best to not throw out the data we got about number of days survived, so instead we used the number of days survived as our response variable. 
+
+Packages Required:
+```{r}
+library(tidyr)
+library(tidyverse)
+library(dplyr)
+library(lattice)
+library(car)
+library(effects)
+library(lme4)
+library(gridExtra)
+pref_theme <- theme_classic() +
+  theme(text = element_text(size = 15))
+theme_set(pref_theme)
+```
+Reading in the dataset: 
+```{r}
+pred_data <- read.csv("FO_TempPlasticitySelection_complete_wide_April2019.csv")
+pred_data <- na.omit(pred_data)
+##summary(pred_data)
+```
+We can put each of the variables into their appropriate classes:
+```{r}
+pred_data <-(pred_data %>% 
+                      mutate(cage=as.factor(cage)) %>%
+                      mutate(temperature=as.factor(temperature)) %>%
+                      mutate(sex=as.factor(sex))) %>%
+                      mutate(survival=as.numeric(survival))
+```
+We can also scale the data- this will be important when we want to interpret each of the traits in our model later on. The scale function has the general formula of trait measurement - mean(trait measurement)/standard deviation(trait measurement). Since we were analyzing each temperature group seperately and we were not including the non-predator treatments in our analysis, we grouped the data by temperature and treatment before standardizing our traits and calculating relative fitness. 
+```{r}
+pred_data <- pred_data %>% 
+  group_by(treatment, temperature) %>% 
+  mutate(stand_femur = scale(femur), stand_femur, 
+         stand_tibia = scale(tibia), stand_tibia, 
+         stand_wing = scale(wing), stand_wing, 
+         stand_thorax = scale(thorax), stand_thorax,
+         relfit = survival/mean(survival), relfit)
+```
+Visualizing the raw data. First we are looking at two plots that show survival is influenced by the presence of a predator, and secondly that the flies were successfully randomized to predator and non-predator groups (so the distribution of trait sizes should be the same).
+```{r}
+##The presence of a predator influences the survivorship of flies
+ggplot(pred_data, aes(survival)) + geom_histogram() + facet_wrap(~treatment)
+
+##Trait sizes are equally randomized among predator and non-predator groups:
+
+tib <- ggplot(pred_data, aes(tibia, colour = treatment)) + 
+  geom_density() +
+  facet_wrap(~temperature)
+
+fem <- ggplot(pred_data, aes(femur, colour = treatment)) + 
+  geom_density() +
+  facet_wrap(~temperature)
+
+wing <- ggplot(pred_data, aes(wing, colour = treatment)) + 
+  geom_density() +
+  facet_wrap(~temperature)
+
+thor <- ggplot(pred_data, aes(thorax, colour = treatment)) + 
+  geom_density() +
+  facet_wrap(~temperature)
+grid.arrange(tib, fem, wing, thor)
+```
+
+Since the flies were randomly distributed among the predator and non predator groups, we are just going to do out analysis with the predator populations. We are just using the predator cages because we are interested in looking at survival and there was next to no death in the non-predator cages. 
+
+Here, we are just subsetting out dataset to make three new dataframes that partion the data into the three temperature and predator groups.
+
+```{r}
+##dataset with just the 18 degree, predator group
+data_18_P <- filter(pred_data, temperature == "18", treatment == "P") %>% na.omit()
+##dataset with just the 21 degree, predator group
+data_21_P <- filter(pred_data, temperature == "21", treatment == "P") %>% na.omit()
+##dataset with just the 24 degree, predator group
+data_24_P <- filter(pred_data, temperature == "24", treatment == "P") %>% na.omit()
+```
+Next we are looking at the raw data plotted against the response variable (survival) to get a visual sense of how each trait may relate to survivability. 
+
+```{r}
+##Plots looking at the raw data against survival 
+
+##for thorax
+thor_surv <- ggplot(pred_data, aes(thorax, survival, colour = sex)) + geom_point() + geom_smooth()
+
+##for wing
+wing_surv <- ggplot(pred_data, aes(wing, survival, colour = sex)) + geom_point() + 
+  geom_smooth()
+
+##for femur
+fem_surv <- ggplot(pred_data, aes(femur, survival, colour = sex)) + geom_point() + 
+  geom_smooth()
+
+##for tibia
+tib_surv <- ggplot(pred_data, aes(tibia, survival, colour = sex)) + geom_point() + 
+  geom_smooth()
+grid.arrange(thor_surv, wing_surv, fem_surv, tib_surv)
+```
+
+One thing we might also expect is that as certain traits get larger, others will as well (allometry). We can look at how correlated the responses are using the corr function.
+
+```{r}
+##names(pred_data)
+##creating a dataset that is just the 18 degree group, and all of the values for unscaled traits:
+traits_18 <- pred_data[pred_data$temperature == "18",8:11]
+traits_21 <- pred_data[pred_data$temperature == "21",8:11]
+traits_24 <- pred_data[pred_data$temperature == "24",8:11]
+cor(traits_18)
+cor(traits_21)
+cor(traits_24)
+```
+We can see that the traits are highly correlated with each other among all three temperatures. This may make it difficult to run a linear model to understand which traits affect survival independently. However, we can get a better idea of how correlated each trait is with survival using multiple linear regression models. If we run a multiple linear regression model with all traits, the multiple regression takes into account the covariance between traits. From there, we can plot the residuals of each trait against the reponse variable (survivorship) to get a better idea of how that trait relates to survivorship. 
+
+Lets start by looking at two multiple regression models: the full model with all standardized traits, and the model with just one predictor (we arbitrarily pick tibia).
+
+```{r}
+##multiple regression model for the 18C group
+lm_full_18 <- lm(survival ~ stand_femur:sex + stand_tibia:sex + stand_wing:sex + stand_thorax:sex + cage, data = data_18_P)
+lm_18fit <- lm(relfit ~ stand_femur:sex + stand_tibia:sex + stand_wing:sex + stand_thorax:sex + cage, data = data_18_P)
+##multiple regression model for the 21C group
+lm_full_21 <- lm(survival ~ stand_femur:sex + stand_tibia:sex + stand_wing:sex + stand_thorax:sex + cage, data = data_21_P)
+##multiple regression model for the 24C group
+lm_full_24 <- lm(survival ~ stand_femur:sex + stand_tibia:sex + stand_wing:sex + stand_thorax:sex + cage, data = data_24_P)
+```
+We tried running this model with cage as a random effect, but due to the fact that there are only 3-4 different cages per temperature group, this was too small a size to include as a random effect. We included cage as a fixed effect instead. 
+
+```{r}
+lm_tibia_18 <- lm(survival ~ stand_tibia:sex, data = data_18_P)
+##And then their summaries
+summary(lm_full_18)
+summary(lm_tibia_18)$coef
+```
+We can see that the estimates for the tibia in each model are different, and the standard errors are somewhat different as well, which effects t values, etc. 
+This means that tibia length is affected by the other predictor variables, which also confirms what the corr test told us. 
+
+The car package has a function that will compute the residual plots for all the variables in the model automatically: 
+```{r}
+avPlots(lm_full_18)
+avPlots(lm_full_21)
+avPlots(lm_full_24)
+
+avplots_18 <- allEffects(mod=lm_full_18)
+avplots_21 <- allEffects(mod=lm_full_21)
+avplots_24 <- allEffects(mod=lm_full_24)
+
+plot(avplots_18)
+plot(avplots_21)
+plot(avplots_24)
+```
+
+Acknowlegding that our traits are highly correlated, we are going to assess the full multiple regression anyway (but we are going to use Principle Component Analysis later to account for this attribute). In this case, the intercept will be the mean number of days survived (of just the predator group). Since we have scaled our data, each estimate for the traits will tell us how much of an increase or decrease in the number of days you'll survive for one standard deviation away from the mean (i.e a -0.7mm increase in tibia length will increase survivorship by 0.5 days).
+
+##Multiple linear regression for 18C 
+```{r}
+##Summaries with survival and relative fitness as the reponse variable 
+summary(lm_full_18)
+summary(lm_18fit)
+```
+
+```{r}
+summary(lm_full_21)
+````
+##Multiple linear regression for 21 group
+```{r}
+summary(lm_full_24)
+```
+###Multiple linear regression for 24 group
+
+From these models we can see that there are differences in the estimates for our variables between temperature groups which may suggest rearing temperatures or overall fly size have different fitness consequences. 
+
+Between models we not only see differences between the effects of phenotypic traits but also cage effects.
+
+Next we are going to do some diagnostic checks for normality to see if our models are a good fit. 
+```{r}
+par(mfrow=c(2,2),mar=c(2,3,1.5,1),mgp=c(2,1,0))
+
+plot(lm_full_18, id.n = 4)
+plot(lm_full_21, id.n = 4)
+plot(lm_full_24, id.n = 4)
+```
+From our diagnostic plots, we can see that our data violates the assumption of normality. And although a multiple linear regression model is what is typically used for selection experiments, we know that the traits are highly correlated with one another. For this reason, we are going to run a permutation test to determine how extreme our observed data is from what we might expect by chance.
+
+```{r}
+##permutations test for 18C
+set.seed(500)
+numsims <- 1000
+res_18 <- matrix(nrow = numsims, ncol = 11)
+colnames(res_18) <- c("Intercept", "Cage 2", "Cage 3", "Stand_Femur:Sex_F", "Stand_Femur:Sex_M", "Stand_Tibia:Sex_F", "Stand_Tibia:Sex_M", "Stand_Wing:Sex_F", "Stand_Wing:Sex_M", "Stand_Thorax:Sex_F", "Stand_Thorax:Sex_M")
+for (i in 1:numsims) {
+  perm <- sample(nrow(data_18_P))
+  pdat_18 <- transform(data_18_P, survival = survival[perm])
+  res_18[i, 1:11] <- coef(lm(survival[perm] ~ stand_femur:sex + stand_tibia:sex + stand_wing:sex + stand_thorax:sex + cage, data = pdat_18))
+}
+colMeans(res_18)
+observed_18 <- coef(lm_full_18)
+
+#permutation test for 21C
+res_21 <- matrix(nrow = numsims, ncol = 11)
+colnames(res_21) <- c("Intercept", "Cage 2", "Cage 3", "Stand_Femur:Sex_F", "Stand_Femur:Sex_M", "Stand_Tibia:Sex_F", "Stand_Tibia:Sex_M", "Stand_Wing:Sex_F", "Stand_Wing:Sex_M", "Stand_Thorax:Sex_F", "Stand_Thorax:Sex_M")
+for (i in 1:numsims) {
+  perm <- sample(nrow(data_21_P))
+  pdat_21 <- transform(data_21_P, survival = survival[perm])
+  res_21[i, 1:11] <- coef(lm(survival[perm] ~ stand_femur:sex + stand_tibia:sex + stand_wing:sex + stand_thorax:sex + cage, data = pdat_21))
+}
+colMeans(res_21)
+observed_21 <- coef(lm_full_21)
+
+#permutation test for 24C
+res_24 <- matrix(nrow = numsims, ncol = 12)
+colnames(res_24) <- c("Intercept", "Cage 2", "Cage 3","Cage 4", "Stand_Femur:Sex_F", "Stand_Femur:Sex_M", "Stand_Tibia:Sex_F", "Stand_Tibia:Sex_M", "Stand_Wing:Sex_F", "Stand_Wing:Sex_M", "Stand_Thorax:Sex_F", "Stand_Thorax:Sex_M")
+for (i in 1:numsims) {
+  perm <- sample(nrow(data_24_P))
+  pdat_24 <- transform(data_24_P, survival = survival[perm])
+  res_24[i, 1:12] <- coef(lm(survival[perm] ~ stand_femur:sex + stand_tibia:sex + stand_wing:sex + stand_thorax:sex + cage, data = pdat_24))
+}
+colMeans(res_24)
+observed_24 <- coef(lm_full_24)
+
+perm_hists <- function(x, y) {
+  par(mfrow=c(3,4),mar=c(2,3,1.5,1),mgp=c(2,1,0))
+  for (i in 1:ncol(x)) {
+    hist(x[,i], col = "gray", las = 1, main = names(x[1,i]))
+    abline(v= y[i], col = "red")
+  }
+}
+
+#results from permutation tests
+perm_hists(res_18, observed_18)
+perm_hists(res_21, observed_21)
+perm_hists(res_24, observed_24)
+```
+PCA Analysis:
+Since the beginning of our analysis showed that are variables in our model were highly correlated, we decided to use PCA analysis in order to determine if non-size related variation seems to has a relationship with survival.  
+```{r}
+#pca for 18C
+pca_18 <- prcomp(data_18_P[,12:15], scale. = TRUE)
+summary(pca_18)
+pca_18$rotation
+data18_full <- data.frame(data_18_P, 
+                        pca_18$x)
+
+#pca for 21C
+pca_21 <- prcomp(data_21_P[,12:15], scale. = TRUE)
+summary(pca_21)
+pca_21$rotation
+data21_full <- data.frame(data_21_P, 
+                        pca_21$x)
+
+#pca for 24C
+pca_24 <- prcomp(data_24_P[,12:15], scale. = TRUE)
+summary(pca_24)
+pca_24$rotation
+data24_full <- data.frame(data_24_P, 
+                        pca_24$x)
+
+##PCA models
+lm18_pca <- lm(survival ~ (PC1 + PC2 + sex)^2 - PC1:PC2 + cage, data = data18_full)
+summary(lm18_pca)
+par(mfrow=c(2,2),mar=c(2,3,1.5,1),mgp=c(2,1,0))
+plot(lm18_pca, id.n = 4)
+lm21_pca <- lm(survival ~ (PC1 + PC2 + sex)^2 - PC1:PC2 + cage, data = data21_full)
+summary(lm21_pca)
+par(mfrow=c(2,2),mar=c(2,3,1.5,1),mgp=c(2,1,0))
+plot(lm21_pca, id.n = 4)
+lm24_pca <- lm(survival ~ (PC1 + PC2 + sex)^2 - PC1:PC2 + cage, data = data24_full)
+summary(lm24_pca)
+par(mfrow=c(2,2),mar=c(2,3,1.5,1),mgp=c(2,1,0))
+plot(lm24_pca, id.n = 4)
+```
+In each of these models, PC1 captures mostly size-related variation. This is evident because we know that our traits are highly corrolated, and the outputs for each trait estimate in PC1 are very similar. We can also show this by plotting PC1 against each of the trait values (example for one temperature below). As such, PC2 we suspect captures mostly non-size related variation. An interesting attribute of the model outputs for PC2 (among all temperature groups) is the direction of variation for thorax and wing are the same, and the direction of variation for tibia and femur are also the same, but in opposition to thorax and wing. 
+
+```{r}
+(ggplot(data = data18_full, aes(stand_tibia, PC1, colour = sex)) 
+  + geom_point())
+
+(ggplot(data = data18_full, aes(stand_femur, PC1, colour = sex)) 
+  + geom_point())
+
+(ggplot(data = data18_full, aes(stand_thorax, PC1, colour = sex)) 
+  + geom_point())
+
+(ggplot(data = data18_full, aes(stand_wing, PC1, colour = sex)) 
+  + geom_point())
+```
+
+```{r}
+##permutations for PCA analysis 
+set.seed(500)
+numsims <- 1000
+res18_pca <- matrix(nrow = numsims, ncol = 8) 
+colnames(res18_pca) <- c("Intercept", "PC1", "PC2", "Sex_M", "Cage_2", "Cage_3", "PC1:Sex_M", "PC2:Sex_M")
+for (i in 1:numsims) {
+  perm <- sample(nrow(data18_full))
+  pdat <- transform(data18_full, survival = survival[perm])
+  res18_pca[i, 1:8] <- coef(lm(survival[perm] ~ (PC1 + PC2 + sex)^2 - PC1:PC2 + cage, data = pdat))
+}
+
+colMeans(res18_pca)
+observed18_pca <- coef(lm18_pca)
+
+res21_pca <- matrix(nrow = numsims, ncol = 8) 
+colnames(res21_pca) <- c("Intercept", "PC1", "PC2", "Sex_M", "Cage_2", "Cage_3", "PC1:Sex_M", "PC2:Sex_M")
+for (i in 1:numsims) {
+  perm <- sample(nrow(data21_full))
+  pdat <- transform(data21_full, survival = survival[perm])
+  res21_pca[i, 1:8] <- coef(lm(survival[perm] ~ (PC1 + PC2 + sex)^2 - PC1:PC2 + cage, data = pdat))
+}
+
+colMeans(res21_pca)
+observed21_pca <- coef(lm21_pca)
+
+res24_pca <- matrix(nrow = numsims, ncol = 9) 
+colnames(res24_pca) <- c("Intercept", "PC1", "PC2", "Sex_M", "Cage_2", "Cage_3", "Cage_4", "PC1:Sex_M", "PC2:Sex_M")
+for (i in 1:numsims) {
+  perm <- sample(nrow(data24_full))
+  pdat <- transform(data24_full, survival = survival[perm])
+  res24_pca[i, 1:9] <- coef(lm(survival[perm] ~ (PC1 + PC2 + sex)^2 - PC1:PC2 + cage, data = pdat))
+}
+
+colMeans(res24_pca)
+observed24_pca <- coef(lm24_pca)
+
+perm_hists(res18_pca, observed18_pca)
+perm_hists(res21_pca, observed21_pca)
+perm_hists(res24_pca, observed24_pca)
+```
+The output of our permutations using the PCA models corroborate what we saw with the output of our multiple regression models (i.e. more extreme values in the permuation tests had lower P-values). 
+
+##Overall Conclusions
+With this project, our goal was to answer these three questions:
+1: Do specific traits have an influence on the length of time flies survived?
+2: What is the direction of selection for these traits?
+3: Does the degree of selection for each trait differ among rearing temperatures?
+
+```{r}
+#Among our multiple regression models for each temperature group, there are differences in the strength of selection for each trait as well as their direction. Moreover, there are sex differences in the strength of selection for each trait. In addition, the effect of cage was larger than we anticipated given that these were meant to represent the replicates within the experiment. We know that there is a high degree of correlation among traits for all temperature groups, and our diagnostic plots demonstrate that these models are not good fits. For this reason, we would take any biological interpretations with caution. However, our permutation tests demonstrated that the "significant" results we found may not have been due to chance. Furthermore, any effect that we see for any trait is masked by size effect variation. 
+
+#Our PCA correlation plots show that PC1 captures mostly size variation, leaving mostly non-size related variation in PC2 (and 3 and 4...). However, one of the limitations using PC analysis is that we are not able to capture the effects of each trait. 
+```
