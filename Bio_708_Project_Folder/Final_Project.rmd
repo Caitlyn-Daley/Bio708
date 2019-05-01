@@ -5,11 +5,11 @@ date: "4/16/2019"
 output: html_document
 ---
 Preamble: 
-The purpose of this experiment was to investigate how plasticity induced size variation affects susceptibility to predation, or predator induced natural selection. Since rearing flies at lower temperatures increases body size, flies were reared at 3 temperatures to create variation in body size; 18.5, 21 and 24 degrees. To account for possible temperature specific adaptive advantage during the experiment (of flies or predator), temperature manipulation was only used during the rearing process. Approximately ~200 adult flies from each rearing temperature were collected and then subdivided into treatment and control groups. Treatment populations were exposed to a predator (15 spiders) and monitored for survival for up to 6 days.The respective control population was reared at the same temperature and of similar age, but were not exposed to a predator. Measurements of the wing, tibia, femur and thorax (all of which are expected to be important traits in predation risk) were used to assess size.
+The purpose of this experiment was to investigate how plasticity induced size variation affects susceptibility to predation, or predator induced natural selection. Since rearing flies at lower temperatures increases body size, flies were reared at 3 temperatures to create variation in body size; 18.5, 21 and 24 degrees. To account for possible temperature-specific adaptive advantage during the experiment (of flies or predator), temperature manipulation was only used during the rearing process. Approximately 200 adult flies from each rearing temperature were collected and then subdivided into treatment and control groups. Treatment populations were exposed to a predator (15 spiders) and monitored for survival for up to 6 days.The respective control population was reared at the same temperature and of similar age, but was not exposed to a predator. Measurements of the wing, tibia, femur and thorax (all of which are expected to be important traits in predation risk) were used to assess size.
 
-For our statistical approach, we will be emulating a similar analysis typically done for selection experiments. Typically, selection gradient analysis (multiple linear regression) is used to get selection estimates for each trait. The estimates that are output by the model are our selection gradient coeficients and act as estimates of how natural selection is acting on a trait. However, selection gradient analysis is typically done by using quadratic regressions that can help determine the type of selection(directional, stabilizing, or disruptive). For our analysis we will be only using linear regressions so we will only be able to identify if directional selection on a trait is occurring. 
+For our statistical approach, we will be emulating a similar analysis typically done for selection experiments. Typically, selection gradient analysis (multiple linear regression) is used to get selection estimates for each trait. The estimates that are output by the model are our selection gradient coefficients and act as estimates of how natural selection is acting on a trait. However, selection gradient analysis is typically done by using quadratic regressions that can help determine the type of selection(directional, stabilizing, or disruptive). For our analysis we will be only using linear regressions so we will only be able to identify if directional selection on a trait is occurring.  [**BMB**: why not quadratic? it's not much harder ...]
 
-Standardizing the data of each trait will allow us to compare the estimates among traits and their effect on selection. In addition, te way selection gradient analysis is typically done in the field is converting the response variable (survivorship in our case) to relative fitness (fitness of individual/ mean(population fitness)), and plotting this against the standardized traits. In our analysis, we show both relative fitness and days survived. Although relative fitness is typically used in the field, most of our analyses used days survived as our response variable because this was more relavant to the questions we wanted to address.
+Standardizing the data of each trait will allow us to compare the estimates among traits and their effect on selection. In addition, the way selection gradient analysis is typically done in the field is converting the response variable (survivorship in our case) to relative fitness (fitness of individual/ mean(population fitness)), and plotting this against the standardized traits. In our analysis, we show both relative fitness and days survived. Although relative fitness is typically used in the field, most of our analyses used days survived as our response variable because this was more relevant to the questions we wanted to address.
 
 In our presentation, we thought we would do our analysis with our response variable (survival) as a binomial response (dead or alive). However, we decided it was best to not throw out the data we got about number of days survived, so instead we used the number of days survived as our response variable. 
 
@@ -41,7 +41,7 @@ pred_data <-(pred_data %>%
                       mutate(sex=as.factor(sex))) %>%
                       mutate(survival=as.numeric(survival))
 ```
-We can also scale the data- this will be important when we want to interpret each of the traits in our model later on. The scale function has the general formula of trait measurement - mean(trait measurement)/standard deviation(trait measurement). Since we were analyzing each temperature group seperately and we were not including the non-predator treatments in our analysis, we grouped the data by temperature and treatment before standardizing our traits and calculating relative fitness. 
+We can also scale the data- this will be important when we want to interpret each of the traits in our model later on. The scale function has the general formula of trait measurement - mean(trait measurement)/standard deviation(trait measurement). Since we were analyzing each temperature group separately and we were not including the non-predator treatments in our analysis, we grouped the data by temperature and treatment before standardizing our traits and calculating relative fitness. 
 ```{r}
 pred_data <- pred_data %>% 
   group_by(treatment, temperature) %>% 
@@ -52,6 +52,9 @@ pred_data <- pred_data %>%
          relfit = survival/mean(survival), relfit)
 ```
 Visualizing the raw data. First we are looking at two plots that show survival is influenced by the presence of a predator, and secondly that the flies were successfully randomized to predator and non-predator groups (so the distribution of trait sizes should be the same).
+
+[**BMB**: put bars side-by-side? Also, might not need histogram for discrete data ...]
+
 ```{r}
 ##The presence of a predator influences the survivorship of flies
 ggplot(pred_data, aes(survival)) + geom_histogram() + facet_wrap(~treatment)
@@ -78,7 +81,9 @@ grid.arrange(tib, fem, wing, thor)
 
 Since the flies were randomly distributed among the predator and non predator groups, we are just going to do out analysis with the predator populations. We are just using the predator cages because we are interested in looking at survival and there was next to no death in the non-predator cages. 
 
-Here, we are just subsetting out dataset to make three new dataframes that partion the data into the three temperature and predator groups.
+Here, we are just subsetting out dataset to make three new dataframes that partition the data into the three temperature and predator groups.
+
+[**BMB**: it often works better to do a for loop/grouped analysis rather than making a bunch of new variables ...]
 
 ```{r}
 ##dataset with just the 18 degree, predator group
@@ -112,6 +117,8 @@ grid.arrange(thor_surv, wing_surv, fem_surv, tib_surv)
 
 One thing we might also expect is that as certain traits get larger, others will as well (allometry). We can look at how correlated the responses are using the corr function.
 
+[**BMB**: when dealing with allometry you often want to use log-scaled traits ... ]
+
 ```{r}
 ##names(pred_data)
 ##creating a dataset that is just the 18 degree group, and all of the values for unscaled traits:
@@ -122,7 +129,9 @@ cor(traits_18)
 cor(traits_21)
 cor(traits_24)
 ```
-We can see that the traits are highly correlated with each other among all three temperatures. This may make it difficult to run a linear model to understand which traits affect survival independently. However, we can get a better idea of how correlated each trait is with survival using multiple linear regression models. If we run a multiple linear regression model with all traits, the multiple regression takes into account the covariance between traits. From there, we can plot the residuals of each trait against the reponse variable (survivorship) to get a better idea of how that trait relates to survivorship. 
+We can see that the traits are highly correlated with each other among all three temperatures. This may make it difficult to run a linear model to understand which traits affect survival independently. However, we can get a better idea of how correlated each trait is with survival using multiple linear regression models. If we run a multiple linear regression model with all traits, the multiple regression takes into account the covariance between traits. From there, we can plot the residuals of each trait against the response variable (survivorship) to get a better idea of how that trait relates to survivorship. 
+
+[**BMB**: try `corrplot` package for visualization?]
 
 Lets start by looking at two multiple regression models: the full model with all standardized traits, and the model with just one predictor (we arbitrarily pick tibia).
 
@@ -137,16 +146,20 @@ lm_full_24 <- lm(survival ~ stand_femur:sex + stand_tibia:sex + stand_wing:sex +
 ```
 We tried running this model with cage as a random effect, but due to the fact that there are only 3-4 different cages per temperature group, this was too small a size to include as a random effect. We included cage as a fixed effect instead. 
 
+[**BMB**: could run a model with all data together, then there would be lots of cages (if you assume that variance among cages is the same across temperatures]
+
 ```{r}
 lm_tibia_18 <- lm(survival ~ stand_tibia:sex, data = data_18_P)
 ##And then their summaries
 summary(lm_full_18)
 summary(lm_tibia_18)$coef
 ```
-We can see that the estimates for the tibia in each model are different, and the standard errors are somewhat different as well, which effects t values, etc. 
+We can see that the estimates for the tibia in each model are different, and the standard errors are somewhat different as well, which affects t values, etc. 
 This means that tibia length is affected by the other predictor variables, which also confirms what the corr test told us. 
 
-The car package has a function that will compute the residual plots for all the variables in the model automatically: 
+[**BMB**: be careful with "is affected by" ... *everything always varies/depends on everything* in biology ...]
+
+The `car` package has a function that will compute the residual plots for all the variables in the model automatically: 
 ```{r}
 avPlots(lm_full_18)
 avPlots(lm_full_21)
@@ -161,11 +174,13 @@ plot(avplots_21)
 plot(avplots_24)
 ```
 
-Acknowlegding that our traits are highly correlated, we are going to assess the full multiple regression anyway (but we are going to use Principle Component Analysis later to account for this attribute). In this case, the intercept will be the mean number of days survived (of just the predator group). Since we have scaled our data, each estimate for the traits will tell us how much of an increase or decrease in the number of days you'll survive for one standard deviation away from the mean (i.e a -0.7mm increase in tibia length will increase survivorship by 0.5 days).
+Acknowledging that our traits are highly correlated, we are going to assess the full multiple regression anyway (but we are going to use Principal Component Analysis later to account for this attribute). In this case, the intercept will be the mean number of days survived (of just the predator group). Since we have scaled our data, each estimate for the traits will tell us how much of an increase or decrease in the number of days you'll survive for one standard deviation away from the mean (i.e a -0.7mm increase in tibia length will increase survivorship by 0.5 days).
 
-##Multiple linear regression for 18C 
+[**BMB**: what is the take-home message from all of this ????]
+
+##Multiple linear regression for 18C
 ```{r}
-##Summaries with survival and relative fitness as the reponse variable 
+##Summaries with survival and relative fitness as the response variable 
 summary(lm_full_18)
 summary(lm_18fit)
 ```
@@ -192,6 +207,8 @@ plot(lm_full_21, id.n = 4)
 plot(lm_full_24, id.n = 4)
 ```
 From our diagnostic plots, we can see that our data violates the assumption of normality. And although a multiple linear regression model is what is typically used for selection experiments, we know that the traits are highly correlated with one another. For this reason, we are going to run a permutation test to determine how extreme our observed data is from what we might expect by chance.
+
+[**BMB**: it looks might be a good idea to treat survival as an *ordinal* variable, since there is a smallnumber of discrete variables.  Or, if you want to be simpler/more parsimonious, a beta-binomial or negative binomial might fit the shape ... negative binomial makes more sense, but it might have to allow for *right-censorship* (flies that survive the whole time)]
 
 ```{r}
 ##permutations test for 18C
@@ -242,7 +259,10 @@ perm_hists(res_18, observed_18)
 perm_hists(res_21, observed_21)
 perm_hists(res_24, observed_24)
 ```
-PCA Analysis:
+[**BMB**: conclusions???]
+
+## PCA Analysis
+
 Since the beginning of our analysis showed that are variables in our model were highly correlated, we decided to use PCA analysis in order to determine if non-size related variation seems to has a relationship with survival.  
 ```{r}
 #pca for 18C
@@ -280,7 +300,7 @@ summary(lm24_pca)
 par(mfrow=c(2,2),mar=c(2,3,1.5,1),mgp=c(2,1,0))
 plot(lm24_pca, id.n = 4)
 ```
-In each of these models, PC1 captures mostly size-related variation. This is evident because we know that our traits are highly corrolated, and the outputs for each trait estimate in PC1 are very similar. We can also show this by plotting PC1 against each of the trait values (example for one temperature below). As such, PC2 we suspect captures mostly non-size related variation. An interesting attribute of the model outputs for PC2 (among all temperature groups) is the direction of variation for thorax and wing are the same, and the direction of variation for tibia and femur are also the same, but in opposition to thorax and wing. 
+In each of these models, PC1 captures mostly size-related variation. This is evident because we know that our traits are highly correlated, and the outputs for each trait estimate in PC1 are very similar. We can also show this by plotting PC1 against each of the trait values (example for one temperature below). As such, PC2 we suspect captures mostly non-size related variation. An interesting attribute of the model outputs for PC2 (among all temperature groups) is the direction of variation for thorax and wing are the same, and the direction of variation for tibia and femur are also the same, but in opposition to thorax and wing. 
 
 ```{r}
 (ggplot(data = data18_full, aes(stand_tibia, PC1, colour = sex)) 
@@ -337,16 +357,17 @@ perm_hists(res18_pca, observed18_pca)
 perm_hists(res21_pca, observed21_pca)
 perm_hists(res24_pca, observed24_pca)
 ```
-The output of our permutations using the PCA models corroborate what we saw with the output of our multiple regression models (i.e. more extreme values in the permuation tests had lower P-values). 
+The output of our permutations using the PCA models corroborate what we saw with the output of our multiple regression models (i.e. more extreme values in the permutation tests had lower P-values). 
 
 ##Overall Conclusions
+
 With this project, our goal was to answer these three questions:
+
 1: Do specific traits have an influence on the length of time flies survived?
 2: What is the direction of selection for these traits?
 3: Does the degree of selection for each trait differ among rearing temperatures?
 
-```{r}
-#Among our multiple regression models for each temperature group, there are differences in the strength of selection for each trait as well as their direction. Moreover, there are sex differences in the strength of selection for each trait. In addition, the effect of cage was larger than we anticipated given that these were meant to represent the replicates within the experiment. We know that there is a high degree of correlation among traits for all temperature groups, and our diagnostic plots demonstrate that these models are not good fits. For this reason, we would take any biological interpretations with caution. However, our permutation tests demonstrated that the "significant" results we found may not have been due to chance. Furthermore, any effect that we see for any trait is masked by size effect variation. 
+Among our multiple regression models for each temperature group, there are differences in the strength of selection for each trait as well as their direction. Moreover, there are sex differences in the strength of selection for each trait. In addition, the effect of cage was larger than we anticipated given that these were meant to represent the replicates within the experiment. We know that there is a high degree of correlation among traits for all temperature groups, and our diagnostic plots demonstrate that these models are not good fits. For this reason, we would take any biological interpretations with caution. However, our permutation tests demonstrated that the "significant" results we found may not have been due to chance. Furthermore, any effect that we see for any trait is masked by size effect variation. 
 
-#Our PCA correlation plots show that PC1 captures mostly size variation, leaving mostly non-size related variation in PC2 (and 3 and 4...). However, one of the limitations using PC analysis is that we are not able to capture the effects of each trait. 
-```
+Our PCA correlation plots show that PC1 captures mostly size variation, leaving mostly non-size related variation in PC2 (and 3 and 4...). However, one of the limitations using PC analysis is that we are not able to capture the effects of each trait. 
+
