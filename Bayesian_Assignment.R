@@ -36,15 +36,17 @@ named_list <- function (...)
   setNames(L, nm)
 }
 ##releving mutant to make them numeric so jags will run: 
-wingdat1 <- with(wings,
-                named_list(N=nrow(wings),
-                           nmutant=length(levels(Mutant)),
-                           Mutant=as.numeric(Mutant)))
+wingdat1 <- with(wings, named_list(
+	N=nrow(wings)
+	, Mutant=as.numeric(Mutant)
+	, b=Block
+))
 ##The model
 Nwings <- nrow(wingdat1)
 Model <- function() {
-  for (i in 1:Nwings) {
-    mu[i] <- b[mutant[i]]
+	tau <- 0.001
+  for (i in 1:N) {
+    mu[i] <- b[Mutant[i]]
     area[i] ~dnorm(mu[i], tau)
   }}
 ##defining priors
@@ -70,11 +72,11 @@ modelrun <- jags(data=wingdat1,
                  parameters=c("m1", "b1", "tau"),
                  model.file=Model, n.chains = 4)
 ##I'm not entirely sure why the model isn't working.... 
-   
 
-                    
-                           
-                           
+## JD: It's giving pretty clear error messages. I tracked through a few of them.
+## Not really able to follow the structure you have in mind, though.
+## Mostly, you have to make sure to pass things in data that you want
+## and not pass things that you don't want
+## The bugs model is a different world than the R world
 
-
-
+## Grade 1/3
