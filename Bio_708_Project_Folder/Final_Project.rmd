@@ -13,6 +13,8 @@ Standardizing the data of each trait will allow us to compare the estimates amon
 
 In our presentation, we thought we would do our analysis with our response variable (survival) as a binomial response (dead or alive). However, we decided it was best to not throw out the data we got about number of days survived, so instead we used the number of days survived as our response variable. 
 
+JD: Try not to ignore warning messages (your html has warnings here).
+
 Packages Required:
 ```{r}
 library(tidyr)
@@ -51,7 +53,7 @@ pred_data <- pred_data %>%
          stand_thorax = scale(thorax), stand_thorax,
          relfit = survival/mean(survival), relfit)
 ```
-Visualizing the raw data. First we are looking at two plots that show survival is influenced by the presence of a predator, and secondly that the flies were successfully randomized to predator and non-predator groups (so the distribution of trait sizes should be the same).
+Visualizing the raw data. First we are looking at two plots that show survival is influenced by the presence of a predator, and secondly that the flies were successfully randomized to predator and non-predator groups (so the distribution of trait sizes should be the same). JD: "similar" is better for cases like this.
 
 [**BMB**: put bars side-by-side? Also, might not need histogram for discrete data ...]
 
@@ -60,6 +62,7 @@ Visualizing the raw data. First we are looking at two plots that show survival i
 ggplot(pred_data, aes(survival)) + geom_histogram() + facet_wrap(~treatment)
 
 ##Trait sizes are equally randomized among predator and non-predator groups:
+## JD: Again, "similar"
 
 tib <- ggplot(pred_data, aes(tibia, colour = treatment)) + 
   geom_density() +
@@ -80,6 +83,7 @@ grid.arrange(tib, fem, wing, thor)
 ```
 
 Since the flies were randomly distributed among the predator and non predator groups, we are just going to do out analysis with the predator populations. We are just using the predator cages because we are interested in looking at survival and there was next to no death in the non-predator cages. 
+JD: The first s. doesn't make sense, whereas the second one makes perfect sense.
 
 Here, we are just subsetting out dataset to make three new dataframes that partition the data into the three temperature and predator groups.
 
@@ -371,3 +375,4 @@ Among our multiple regression models for each temperature group, there are diffe
 
 Our PCA correlation plots show that PC1 captures mostly size variation, leaving mostly non-size related variation in PC2 (and 3 and 4...). However, one of the limitations using PC analysis is that we are not able to capture the effects of each trait. 
 
+JD: Your core results may not be due to chances, but can you summarize them biologically? Are you looking for particular effects (this temperature group is doing this); for the average size of effects (compared to what?) … ?
